@@ -13,14 +13,17 @@ export default function RootLayout() {
   });
 
   if (!loaded) {
-    // Async font loading only occurs in development.
     return null;
   }
 
   return (
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        {/* Itt most az index.tsx lesz az alap */}
+        <Stack.Screen name="index" options={{ title: 'Főmenü' }} />
+        <Stack.Screen name="machines" options={{ title: 'Gépek' }} />
+        <Stack.Screen name="tools" options={{ title: 'Szerszámok' }} />
+        <Stack.Screen name="orders" options={{ title: 'Megrendelések' }} />
         <Stack.Screen name="+not-found" />
       </Stack>
       <StatusBar style="auto" />
