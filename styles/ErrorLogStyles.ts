@@ -107,24 +107,24 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
-   statusRow: {
+  statusRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 8,
   },
-  
+
   statusStopped: {
     backgroundColor: '#fff3e0',
     color: '#ef6c00',
   },
-  
+
   downtimeText: {
     fontSize: 12,
     color: '#ef6c00',
     fontStyle: 'italic',
   },
-  
+
   actionContainer: {
     marginTop: 8,
     paddingTop: 8,
@@ -132,7 +132,7 @@ export const styles = StyleSheet.create({
     borderTopColor: '#eee',
     gap: 8,
   },
-  
+
   switchContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -142,11 +142,17 @@ export const styles = StyleSheet.create({
     backgroundColor: '#f9f9f9',
     borderRadius: 4,
   },
-  
+
   warningText: {
     color: '#d32f2f',
     fontSize: 12,
     marginBottom: 16,
     fontStyle: 'italic',
+  },
+  
+  loadingText: {
+    marginLeft: 10,
+    fontStyle: 'italic',
+    color: '#666',
   },
 });

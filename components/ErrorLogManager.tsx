@@ -21,6 +21,7 @@ const ErrorLogManager: React.FC<ErrorLogManagerProps> = ({ machineId, visible, o
     stop_machine: false
   });
   const [solution, setSolution] = useState('');
+  const [isSwitchLoading, setIsSwitchLoading] = useState(false);
 
   useEffect(() => {
     if (visible) {
@@ -92,6 +93,39 @@ const ErrorLogManager: React.FC<ErrorLogManagerProps> = ({ machineId, visible, o
       Alert.alert('Siker', `Gép ${newStatus === 'stopped' ? 'leállítva' : 'újraindítva'}`);
     } catch (error) {
       Alert.alert('Hiba', 'Nem sikerült frissíteni a gép állapotát');
+    }
+  };
+
+  const handleMachineSwitch = async (value: boolean) => {
+    setIsSwitchLoading(true);
+    try {
+      // First update the form state
+      setNewError({ 
+        ...newError, 
+        stop_machine: value,
+        status: value ? 'stopped' : 'actual'
+      });
+      
+      // Then call the API to actually stop/start the machine
+      if (value) {
+        await errorLogService.stopMachine(machineId);
+        Alert.alert('Siker', 'Gép leállítva');
+      } else {
+        await errorLogService.resumeMachine(machineId);
+        Alert.alert('Siker', 'Gép elindítva');
+      }
+    } catch (error) {
+      console.error('Error controlling machine:', error);
+      Alert.alert('Hiba', 'Nem sikerült frissíteni a gép állapotát');
+      
+      // Revert the switch if API call fails
+      setNewError({ 
+        ...newError, 
+        stop_machine: !value,
+        status: !value ? 'stopped' : 'actual'
+      });
+    } finally {
+      setIsSwitchLoading(false);
     }
   };
 
@@ -204,16 +238,16 @@ const ErrorLogManager: React.FC<ErrorLogManagerProps> = ({ machineId, visible, o
             
             <View style={styles.switchContainer}>
               <Text>Gép leállítása a hiba miatt:</Text>
-              <Switch
-                value={newError.stop_machine}
-                onValueChange={(value) => setNewError({ 
-                  ...newError, 
-                  stop_machine: value,
-                  status: value ? 'stopped' : 'actual'
-                })}
-                trackColor={{ false: '#767577', true: '#81b0ff' }}
-                thumbColor={newError.stop_machine ? '#f5dd4b' : '#f4f3f4'}
-              />
+              {isSwitchLoading ? (
+                <Text>Betöltés...</Text>
+              ) : (
+                <Switch
+                  value={newError.stop_machine}
+                  onValueChange={handleMachineSwitch}
+                  trackColor={{ false: '#767577', true: '#81b0ff' }}
+                  thumbColor={newError.stop_machine ? '#f5dd4b' : '#f4f3f4'}
+                />
+              )}
             </View>
             
             {newError.stop_machine && (
