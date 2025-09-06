@@ -1,6 +1,6 @@
 // components/ErrorLogManager.tsx
 import React, { useEffect, useState } from 'react';
-import { Alert, Button, FlatList, Modal, Text, TextInput, View } from 'react-native';
+import { Alert, Button, FlatList, Modal, Switch, Text, TextInput, View } from 'react-native';
 import { errorLogService } from '../services/errorLogService';
 import { styles } from '../styles/ErrorLogStyles';
 import { CreateErrorLogData, ErrorLog } from '../types/ErrorLog';
@@ -17,7 +17,8 @@ const ErrorLogManager: React.FC<ErrorLogManagerProps> = ({ machineId, visible, o
   const [newError, setNewError] = useState<CreateErrorLogData>({
     title: '',
     description: '',
-    status: 'actual'
+    status: 'actual',
+    stop_machine: false
   });
   const [solution, setSolution] = useState('');
 
@@ -44,7 +45,13 @@ const ErrorLogManager: React.FC<ErrorLogManagerProps> = ({ machineId, visible, o
 
     try {
       await errorLogService.createMachineErrorLog(machineId, newError);
-      setNewError({ title: '', description: '', status: 'actual' });
+      
+      // If stop machine is selected, call the stop endpoint
+      if (newError.stop_machine && newError.status === 'stopped') {
+        await errorLogService.stopMachine(machineId);
+      }
+      
+      setNewError({ title: '', description: '', status: 'actual', stop_machine: false });
       setIsCreating(false);
       loadErrorLogs();
       Alert.alert('Siker', 'Hiba sikeresen rögzítve');
@@ -67,23 +74,57 @@ const ErrorLogManager: React.FC<ErrorLogManagerProps> = ({ machineId, visible, o
     }
   };
 
+  const toggleStopStatus = async (errorLog: ErrorLog) => {
+    try {
+      const newStatus = errorLog.status === 'stopped' ? 'actual' : 'stopped';
+      await errorLogService.updateErrorLog(errorLog.id!, {
+        status: newStatus
+      });
+      
+      // Also stop/resume the machine
+      if (newStatus === 'stopped') {
+        await errorLogService.stopMachine(machineId);
+      } else {
+        await errorLogService.resumeMachine(machineId);
+      }
+      
+      loadErrorLogs();
+      Alert.alert('Siker', `Gép ${newStatus === 'stopped' ? 'leállítva' : 'újraindítva'}`);
+    } catch (error) {
+      Alert.alert('Hiba', 'Nem sikerült frissíteni a gép állapotát');
+    }
+  };
+
   const renderErrorLogItem = ({ item }: { item: ErrorLog }) => (
     <View style={styles.errorLogItem}>
       <Text style={styles.errorLogTitle}>{item.title}</Text>
       <Text style={styles.errorLogDescription}>{item.description}</Text>
-      <Text style={[
-        styles.statusBadge,
-        item.status === 'fixed' ? styles.statusFixed : styles.statusActual
-      ]}>
-        {item.status === 'fixed' ? 'Javítva' : 'Aktuális'}
-      </Text>
+      
+      <View style={styles.statusRow}>
+        <Text style={[
+          styles.statusBadge,
+          item.status === 'fixed' ? styles.statusFixed : 
+          item.status === 'stopped' ? styles.statusStopped : 
+          styles.statusActual
+        ]}>
+          {item.status === 'fixed' ? 'Javítva' : 
+           item.status === 'stopped' ? 'Leállítva' : 
+           'Aktuális'}
+        </Text>
+        
+        {item.status === 'stopped' && item.downtime_duration && (
+          <Text style={styles.downtimeText}>
+            Állásidő: {item.downtime_duration}
+          </Text>
+        )}
+      </View>
       
       {item.status === 'fixed' && item.solution && (
         <Text style={styles.solutionText}>Megoldás: {item.solution}</Text>
       )}
       
       {item.status === 'actual' && (
-        <View style={styles.fixContainer}>
+        <View style={styles.actionContainer}>
           <TextInput
             style={styles.solutionInput}
             placeholder="Megoldás leírása..."
@@ -95,12 +136,29 @@ const ErrorLogManager: React.FC<ErrorLogManagerProps> = ({ machineId, visible, o
             onPress={() => markAsFixed(item)}
             color="#4CAF50"
           />
+          <Button
+            title="Gép leállítása"
+            onPress={() => toggleStopStatus(item)}
+            color="#FF9800"
+          />
+        </View>
+      )}
+      
+      {item.status === 'stopped' && (
+        <View style={styles.actionContainer}>
+          <Button
+            title="Gép indítása"
+            onPress={() => toggleStopStatus(item)}
+            color="#2196F3"
+          />
         </View>
       )}
       
       <Text style={styles.dateText}>
         Létrehozva: {new Date(item.created_at!).toLocaleDateString('hu-HU')}
         {item.fixed_at && ` - Javítva: ${new Date(item.fixed_at).toLocaleDateString('hu-HU')}`}
+        {item.stopped_at && ` - Leállítva: ${new Date(item.stopped_at).toLocaleDateString('hu-HU')}`}
+        {item.resumed_at && ` - Indítva: ${new Date(item.resumed_at).toLocaleDateString('hu-HU')}`}
       </Text>
     </View>
   );
@@ -143,6 +201,27 @@ const ErrorLogManager: React.FC<ErrorLogManagerProps> = ({ machineId, visible, o
               multiline
               numberOfLines={4}
             />
+            
+            <View style={styles.switchContainer}>
+              <Text>Gép leállítása a hiba miatt:</Text>
+              <Switch
+                value={newError.stop_machine}
+                onValueChange={(value) => setNewError({ 
+                  ...newError, 
+                  stop_machine: value,
+                  status: value ? 'stopped' : 'actual'
+                })}
+                trackColor={{ false: '#767577', true: '#81b0ff' }}
+                thumbColor={newError.stop_machine ? '#f5dd4b' : '#f4f3f4'}
+              />
+            </View>
+            
+            {newError.stop_machine && (
+              <Text style={styles.warningText}>
+                Figyelem: A gép le lesz állítva a hiba rögzítésekor!
+              </Text>
+            )}
+            
             <View style={styles.formButtons}>
               <Button
                 title="Mentés"

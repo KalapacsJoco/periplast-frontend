@@ -23,6 +23,20 @@ export const errorLogService = {
     return response.json();
   },
 
+  // Stop the machine (optional separate endpoint)
+  stopMachine: async (machineId: number): Promise<void> => {
+    await fetch(`${API_BASE_URL}/machines/${machineId}/stop`, {
+      method: 'POST',
+    });
+  },
+
+  // Resume machine operation
+  resumeMachine: async (machineId: number): Promise<void> => {
+    await fetch(`${API_BASE_URL}/machines/${machineId}/resume`, {
+      method: 'POST',
+    });
+  },
+
   // Update an error log (mark as fixed)
   updateErrorLog: async (errorLogId: number, data: UpdateErrorLogData): Promise<ErrorLog> => {
     const response = await fetch(`${API_BASE_URL}/error-logs/${errorLogId}`, {
