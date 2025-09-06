@@ -1,5 +1,7 @@
-import React from "react";
-import { Text, View } from "react-native";
+// Update your MachineHeader component
+import React, { useState } from 'react';
+import { Button, Text, View } from 'react-native';
+import ErrorLogManager from '../components/ErrorLogManager';
 import { styles } from "../styles/MachineDetailsStyles";
 
 interface MachineHeaderProps {
@@ -7,14 +9,29 @@ interface MachineHeaderProps {
 }
 
 const MachineHeader: React.FC<MachineHeaderProps> = ({ machine }) => {
+  const [showErrorLog, setShowErrorLog] = useState(false);
+
   return (
-    <View style={styles.machineHeader}>
-      <Text style={styles.title}>{machine.name}</Text>
-      <Text>ID: {machine.id}</Text>
-      <Text>Állapot: {machine.status}</Text>
-      <Text>Létrehozva: {new Date(machine.created_at).toLocaleDateString('hu-HU')}</Text>
-      <Text>Módosítva: {new Date(machine.updated_at).toLocaleDateString('hu-HU')}</Text>
-    </View>
+    <>
+      <View style={styles.machineHeader}>
+        <Text style={styles.title}>{machine.name}</Text>
+        <Text>ID: {machine.id}</Text>
+        <Text>Állapot: {machine.status}</Text>
+        <Text>Létrehozva: {new Date(machine.created_at).toLocaleDateString('hu-HU')}</Text>
+        <Text>Módosítva: {new Date(machine.updated_at).toLocaleDateString('hu-HU')}</Text>
+        
+        <Button
+          title="Hibanapló megnyitása"
+          onPress={() => setShowErrorLog(true)}
+        />
+      </View>
+
+      <ErrorLogManager
+        machineId={machine.id}
+        visible={showErrorLog}
+        onClose={() => setShowErrorLog(false)}
+      />
+    </>
   );
 };
 
