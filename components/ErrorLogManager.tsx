@@ -50,6 +50,9 @@ const ErrorLogManager: React.FC<ErrorLogManagerProps> = ({ machineId, visible, o
       // If stop machine is selected, call the stop endpoint
       if (newError.stop_machine && newError.status === 'stopped') {
         await errorLogService.stopMachine(machineId);
+      } else {
+        // If switch is false, set machine status to warning
+        await errorLogService.warnMachine(machineId);
       }
       
       setNewError({ title: '', description: '', status: 'actual', stop_machine: false });
@@ -61,19 +64,24 @@ const ErrorLogManager: React.FC<ErrorLogManagerProps> = ({ machineId, visible, o
     }
   };
 
-  const markAsFixed = async (errorLog: ErrorLog) => {
-    try {
-      await errorLogService.updateErrorLog(errorLog.id!, {
-        status: 'fixed',
-        solution: solution.trim() || 'Megoldva'
-      });
-      setSolution('');
-      loadErrorLogs();
-      Alert.alert('Siker', 'Hiba státusza frissítve');
-    } catch (error) {
-      Alert.alert('Hiba', 'Nem sikerült frissíteni a hibanapló bejegyzést');
-    }
-  };
+const markAsFixed = async (errorLog: ErrorLog) => {
+  try {
+    await errorLogService.updateErrorLog(errorLog.id!, {
+      status: 'fixed',
+      solution: solution.trim() || 'Megoldva'
+    });
+    
+    // Set machine status to working when error is fixed
+    await errorLogService.workingMachine(machineId);
+    
+    setSolution('');
+    loadErrorLogs();
+    Alert.alert('Siker', 'Hiba javítva és gép elindítva');
+  } catch (error) {
+    console.error('Error marking as fixed:', error);
+    Alert.alert('Hiba', 'Nem sikerült frissíteni a hibanapló bejegyzést');
+  }
+};
 
   const toggleStopStatus = async (errorLog: ErrorLog) => {
     try {
@@ -86,7 +94,7 @@ const ErrorLogManager: React.FC<ErrorLogManagerProps> = ({ machineId, visible, o
       if (newStatus === 'stopped') {
         await errorLogService.stopMachine(machineId);
       } else {
-        await errorLogService.resumeMachine(machineId);
+        await errorLogService.workingMachine(machineId);
       }
       
       loadErrorLogs();
@@ -111,8 +119,8 @@ const ErrorLogManager: React.FC<ErrorLogManagerProps> = ({ machineId, visible, o
         await errorLogService.stopMachine(machineId);
         Alert.alert('Siker', 'Gép leállítva');
       } else {
-        await errorLogService.resumeMachine(machineId);
-        Alert.alert('Siker', 'Gép elindítva');
+        await errorLogService.warnMachine(machineId);
+        Alert.alert('Siker', 'Gép figyelmeztetés állapotba helyezve');
       }
     } catch (error) {
       console.error('Error controlling machine:', error);
@@ -253,6 +261,12 @@ const ErrorLogManager: React.FC<ErrorLogManagerProps> = ({ machineId, visible, o
             {newError.stop_machine && (
               <Text style={styles.warningText}>
                 Figyelem: A gép le lesz állítva a hiba rögzítésekor!
+              </Text>
+            )}
+            
+            {!newError.stop_machine && (
+              <Text style={styles.warningText}>
+                Figyelem: A gép figyelmeztetés állapotba kerül!
               </Text>
             )}
             
