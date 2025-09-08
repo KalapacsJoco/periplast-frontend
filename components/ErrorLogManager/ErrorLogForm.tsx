@@ -21,7 +21,7 @@ export const ErrorLogForm: React.FC<ErrorLogFormProps> = ({
     status: 'actual',
     stop_machine: false
   });
-  const [isSwitchLoading, setIsSwitchLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
     if (!newError.title.trim() || !newError.description.trim()) {
@@ -29,39 +29,38 @@ export const ErrorLogForm: React.FC<ErrorLogFormProps> = ({
       return;
     }
 
-    const success = await onSubmit(newError);
-    if (success) {
-      setNewError({ title: '', description: '', status: 'actual', stop_machine: false });
+    setIsSubmitting(true);
+    try {
+      // First submit the error log
+      const success = await onSubmit(newError);
+      
+      if (success) {
+        // If switch is on, stop the machine after successful submission
+        if (newError.stop_machine) {
+          await errorLogService.stopMachine(machineId);
+          Alert.alert('Siker', 'Hiba rögzítve és gép leállítva');
+        } else {
+          // If switch is off, set machine to warning
+          await errorLogService.warnMachine(machineId);
+          Alert.alert('Siker', 'Hiba rögzítve és gép figyelmeztetés állapotba helyezve');
+        }
+        
+        setNewError({ title: '', description: '', status: 'actual', stop_machine: false });
+      }
+    } catch (error) {
+      console.error('Error submitting form:', error);
+      Alert.alert('Hiba', 'Nem sikerült teljesen feldolgozni a kérést');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleMachineSwitch = async (value: boolean) => {
-    setIsSwitchLoading(true);
-    try {
-      setNewError({ 
-        ...newError, 
-        stop_machine: value,
-        status: value ? 'stopped' : 'actual'
-      });
-      
-      if (value) {
-        await errorLogService.stopMachine(machineId);
-        Alert.alert('Siker', 'Gép leállítva');
-      } else {
-        await errorLogService.warnMachine(machineId);
-        Alert.alert('Siker', 'Gép figyelmeztetés állapotba helyezve');
-      }
-    } catch (error) {
-      console.error('Error controlling machine:', error);
-      Alert.alert('Hiba', 'Nem sikerült frissíteni a gép állapotát');
-      setNewError({ 
-        ...newError, 
-        stop_machine: !value,
-        status: !value ? 'stopped' : 'actual'
-      });
-    } finally {
-      setIsSwitchLoading(false);
-    }
+  const handleMachineSwitch = (value: boolean) => {
+    setNewError({ 
+      ...newError, 
+      stop_machine: value,
+      status: value ? 'stopped' : 'actual'
+    });
   };
 
   return (
@@ -83,16 +82,13 @@ export const ErrorLogForm: React.FC<ErrorLogFormProps> = ({
       
       <View style={styles.switchContainer}>
         <Text>Gép leállítása a hiba miatt:</Text>
-        {isSwitchLoading ? (
-          <Text>Betöltés...</Text>
-        ) : (
-          <Switch
-            value={newError.stop_machine}
-            onValueChange={handleMachineSwitch}
-            trackColor={{ false: '#767577', true: '#81b0ff' }}
-            thumbColor={newError.stop_machine ? '#f5dd4b' : '#f4f3f4'}
-          />
-        )}
+        <Switch
+          value={newError.stop_machine}
+          onValueChange={handleMachineSwitch}
+          trackColor={{ false: '#767577', true: '#81b0ff' }}
+          thumbColor={newError.stop_machine ? '#f5dd4b' : '#f4f3f4'}
+          disabled={isSubmitting}
+        />
       </View>
       
       {newError.stop_machine && (
@@ -109,13 +105,15 @@ export const ErrorLogForm: React.FC<ErrorLogFormProps> = ({
       
       <View style={styles.formButtons}>
         <Button
-          title="Mentés"
+          title={isSubmitting ? "Feldolgozás..." : "Mentés"}
           onPress={handleSubmit}
+          disabled={isSubmitting}
         />
         <Button
           title="Mégse"
           onPress={onCancel}
           color="#999"
+          disabled={isSubmitting}
         />
       </View>
     </View>
