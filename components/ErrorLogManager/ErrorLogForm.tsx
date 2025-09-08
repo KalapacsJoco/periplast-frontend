@@ -18,9 +18,9 @@ export const ErrorLogForm: React.FC<ErrorLogFormProps> = ({
   const [newError, setNewError] = useState<CreateErrorLogData>({
     title: '',
     description: '',
-    status: 'actual',
-    stop_machine: false
+    status: 'actual'
   });
+  const [stopMachine, setStopMachine] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async () => {
@@ -36,16 +36,15 @@ export const ErrorLogForm: React.FC<ErrorLogFormProps> = ({
       
       if (success) {
         // If switch is on, stop the machine after successful submission
-        if (newError.stop_machine) {
+        if (stopMachine) {
           await errorLogService.stopMachine(machineId);
           Alert.alert('Siker', 'Hiba rögzítve és gép leállítva');
         } else {
-          // If switch is off, set machine to warning
-          await errorLogService.warnMachine(machineId);
-          Alert.alert('Siker', 'Hiba rögzítve és gép figyelmeztetés állapotba helyezve');
+          Alert.alert('Siker', 'Hiba rögzítve');
         }
         
-        setNewError({ title: '', description: '', status: 'actual', stop_machine: false });
+        setNewError({ title: '', description: '', status: 'actual' });
+        setStopMachine(false);
       }
     } catch (error) {
       console.error('Error submitting form:', error);
@@ -53,14 +52,6 @@ export const ErrorLogForm: React.FC<ErrorLogFormProps> = ({
     } finally {
       setIsSubmitting(false);
     }
-  };
-
-  const handleMachineSwitch = (value: boolean) => {
-    setNewError({ 
-      ...newError, 
-      stop_machine: value,
-      status: value ? 'stopped' : 'actual'
-    });
   };
 
   return (
@@ -83,23 +74,17 @@ export const ErrorLogForm: React.FC<ErrorLogFormProps> = ({
       <View style={styles.switchContainer}>
         <Text>Gép leállítása a hiba miatt:</Text>
         <Switch
-          value={newError.stop_machine}
-          onValueChange={handleMachineSwitch}
+          value={stopMachine}
+          onValueChange={setStopMachine}
           trackColor={{ false: '#767577', true: '#81b0ff' }}
-          thumbColor={newError.stop_machine ? '#f5dd4b' : '#f4f3f4'}
+          thumbColor={stopMachine ? '#f5dd4b' : '#f4f3f4'}
           disabled={isSubmitting}
         />
       </View>
       
-      {newError.stop_machine && (
+      {stopMachine && (
         <Text style={styles.warningText}>
           Figyelem: A gép le lesz állítva a hiba rögzítésekor!
-        </Text>
-      )}
-      
-      {!newError.stop_machine && (
-        <Text style={styles.warningText}>
-          Figyelem: A gép figyelmeztetés állapotba kerül!
         </Text>
       )}
       
