@@ -1,8 +1,8 @@
 // Update your MachineHeader component
 import React, { useState } from 'react';
 import { Button, Text, View } from 'react-native';
-import ErrorLogManager from '../components/ErrorLogManager';
 import { styles } from "../styles/MachineDetailsStyles";
+import ErrorLogManager from './ErrorLogManager/ErrorLogManager';
 
 interface MachineHeaderProps {
   machine: any;

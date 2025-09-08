@@ -23,6 +23,26 @@ export const errorLogService = {
     return response.json();
   },
 
+  // Set the machine status to available
+  availableMachine: async (machineId: number): Promise<void> => {
+    await fetch(`${API_BASE_URL}/machines/${machineId}/available`, {
+      method: 'POST',
+    });
+  },
+  // Set the machine status to warning
+  warnMachine: async (machineId: number): Promise<void> => {
+    await fetch(`${API_BASE_URL}/machines/${machineId}/warning`, {
+      method: 'POST',
+    });
+  },
+
+  // Set the machine status to warning
+  underSetupMachine: async (machineId: number): Promise<void> => {
+    await fetch(`${API_BASE_URL}/machines/${machineId}/under_setup`, {
+      method: 'POST',
+    });
+  },
+
   // Stop the machine (optional separate endpoint)
   stopMachine: async (machineId: number): Promise<void> => {
     await fetch(`${API_BASE_URL}/machines/${machineId}/stop`, {
@@ -31,8 +51,8 @@ export const errorLogService = {
   },
 
   // Resume machine operation
-  resumeMachine: async (machineId: number): Promise<void> => {
-    await fetch(`${API_BASE_URL}/machines/${machineId}/resume`, {
+  workingMachine: async (machineId: number): Promise<void> => {
+    await fetch(`${API_BASE_URL}/machines/${machineId}/working`, {
       method: 'POST',
     });
   },
